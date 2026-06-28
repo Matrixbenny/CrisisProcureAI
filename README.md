@@ -72,6 +72,37 @@ Run steps:
    - uvicorn services.collections_agent.app:app --host 0.0.0.0 --port 8020
 3. Open ui/control_center.html in your browser.
 
+## Run both backend servers together
+- One command (Windows PowerShell):
+   - python scripts/run_services.py
+- PowerShell wrapper:
+   - .\scripts\run_services.ps1
+
+This starts both:
+- Compliance-Risk Agent on 8010
+- Prioritization Agent on 8020
+
+## Quality analysis workflow
+Generate a quick quality report from persisted SQLite history:
+- python scripts/quality_report.py
+
+This report helps answer:
+- Decision quality: are scores aligned and is human-review over-triggered?
+- Fairness quality: which departments are repeatedly high and disparity trend.
+- Resilience quality: whether durable audit history is active.
+
+## Policy safety and rollback
+- Validate candidate policy:
+   - POST /policy/validate
+- Apply validated policy:
+   - POST /policy/apply
+- List snapshots:
+   - GET /policy/history
+- One-click rollback to latest (or specific snapshot):
+   - POST /policy/rollback
+
+Both agents support this lifecycle with auditable snapshots.
+
 ## Quality checks
 - Run syntax check:
    - python -m compileall services

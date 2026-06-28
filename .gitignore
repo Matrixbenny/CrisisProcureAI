@@ -7,3 +7,4 @@ venv/
 Thumbs.db
 *.log
 data/*.db
+services/*/policy_history/*.json

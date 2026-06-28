@@ -13,6 +13,7 @@ app = FastAPI(title="Prioritization Agent", version="1.0.0")
 
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "crisisprocure.db"
 POLICY_PATH = Path(__file__).with_name("policy_pack.json")
+POLICY_HISTORY_DIR = POLICY_PATH.parent / "policy_history"
 
 DEFAULT_POLICY = {
     "policy_version": "fallback-priority-v1",
@@ -39,6 +40,16 @@ def _load_policy() -> Dict:
     with POLICY_PATH.open("r", encoding="utf-8") as f:
         policy = json.load(f)
     return policy
+
+
+def _snapshot_policy(policy: Dict, reason: str) -> str:
+    POLICY_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    filename = f"{ts}-{reason}.json"
+    snapshot_path = POLICY_HISTORY_DIR / filename
+    with snapshot_path.open("w", encoding="utf-8") as f:
+        json.dump(policy, f, indent=2)
+    return filename
 
 
 def _validate_policy(policy: Dict) -> tuple[bool, List[str]]:
@@ -285,6 +296,10 @@ class PolicyPayload(BaseModel):
     policy: Dict[str, Any]
 
 
+class RollbackPayload(BaseModel):
+    snapshot_file: Optional[str] = None
+
+
 class ComparePoliciesRequest(BaseModel):
     requisitions: List[Requisition]
     policy_a: Dict[str, Any]
@@ -324,6 +339,8 @@ def apply_policy(payload: PolicyPayload) -> dict:
     if not valid:
         return {"applied": False, "valid": False, "errors": errors}
 
+    _snapshot_policy(POLICY, "before-apply")
+
     with POLICY_PATH.open("w", encoding="utf-8") as f:
         json.dump(payload.policy, f, indent=2)
 
@@ -333,6 +350,50 @@ def apply_policy(payload: PolicyPayload) -> dict:
         "applied": True,
         "valid": True,
         "policy_version": POLICY.get("policy_version", "unknown"),
+    }
+
+
+@app.get("/policy/history")
+def get_policy_history() -> dict:
+    POLICY_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    snapshots = sorted([p.name for p in POLICY_HISTORY_DIR.glob("*.json")], reverse=True)
+    return {"snapshots": snapshots}
+
+
+@app.post("/policy/rollback")
+def rollback_policy(payload: RollbackPayload) -> dict:
+    global POLICY, POLICY_VALID, POLICY_ERRORS
+
+    POLICY_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    snapshots = sorted([p for p in POLICY_HISTORY_DIR.glob("*.json")], reverse=True)
+    if not snapshots:
+        return {"rolled_back": False, "error": "No policy snapshots available"}
+
+    if payload.snapshot_file:
+        target = POLICY_HISTORY_DIR / payload.snapshot_file
+        if not target.exists():
+            return {"rolled_back": False, "error": "Snapshot file not found"}
+    else:
+        target = snapshots[0]
+
+    with target.open("r", encoding="utf-8") as f:
+        candidate = json.load(f)
+
+    valid, errors = _validate_policy(candidate)
+    if not valid:
+        return {"rolled_back": False, "error": "Snapshot policy invalid", "details": errors}
+
+    _snapshot_policy(POLICY, "before-rollback")
+    with POLICY_PATH.open("w", encoding="utf-8") as f:
+        json.dump(candidate, f, indent=2)
+
+    POLICY = candidate
+    POLICY_VALID, POLICY_ERRORS = True, []
+
+    return {
+        "rolled_back": True,
+        "policy_version": POLICY.get("policy_version", "unknown"),
+        "from_snapshot": target.name,
     }
 
 
