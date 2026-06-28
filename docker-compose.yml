@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: crisisprocure-web
+    command: uvicorn web_gateway.app:app --host 0.0.0.0 --port 8088
+    ports:
+      - "8088:8088"
+    depends_on:
+      - risk
+      - prioritization
+    volumes:
+      - crisisprocure_data:/app/data
+
+  risk:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: crisisprocure-risk
+    command: uvicorn services.exception_agent.app:app --host 0.0.0.0 --port 8010
+    ports:
+      - "8010:8010"
+    volumes:
+      - crisisprocure_data:/app/data
+
+  prioritization:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: crisisprocure-prioritization
+    command: uvicorn services.collections_agent.app:app --host 0.0.0.0 --port 8020
+    ports:
+      - "8020:8020"
+    volumes:
+      - crisisprocure_data:/app/data
+
+volumes:
+  crisisprocure_data:

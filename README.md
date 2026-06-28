@@ -87,6 +87,26 @@ Open the hybrid website:
 - Home page: http://127.0.0.1:8088
 - Operations console: http://127.0.0.1:8088/ui/control_center.html
 
+## Run full hybrid stack with Docker Compose
+From project root:
+
+```powershell
+docker compose up --build
+```
+
+Then open:
+- Home page: http://127.0.0.1:8088
+- Operations console: http://127.0.0.1:8088/ui/control_center.html
+
+Stop services:
+
+```powershell
+docker compose down
+```
+
+Data persistence:
+- SQLite audit history is persisted in the named Docker volume `crisisprocure_data`.
+
 ## Quality analysis workflow
 Generate a quick quality report from persisted SQLite history:
 - python scripts/quality_report.py
