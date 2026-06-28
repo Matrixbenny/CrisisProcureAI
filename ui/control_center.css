@@ -202,6 +202,36 @@ select {
   font-size: 0.82rem;
 }
 
+.policy-editor {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fcfdf8;
+  color: #0b2740;
+  padding: 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+.policy-editor.compact {
+  min-height: 170px;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.helper {
+  margin: -0.3rem 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 footer {
   max-width: 1100px;
   margin: 0 auto 1.4rem;

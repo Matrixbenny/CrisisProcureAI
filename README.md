@@ -55,10 +55,15 @@ External AI agents can be used behind API endpoints, while UiPath remains the or
 - Correlation IDs: request traces can be followed end-to-end across services.
 - Metrics endpoints: live counters support observability and dashboard KPIs.
 - Surge simulation: prioritization service can generate crisis traffic scenarios.
+- Persistent audit timeline: both services write run history to SQLite and expose /history.
+- Safe policy lifecycle: /policy/validate and /policy/apply support controlled policy changes.
+- Fairness diagnostics: each prioritization batch includes disparity analysis by department.
+- Comparative policy benchmarking: /compare/policies evaluates two policy packs side-by-side.
 
 ## User-friendly control center UI
 - Location: ui/control_center.html
-- Features: live KPI cards, explainability outputs, scenario presets, surge simulation trigger.
+- Features: live KPI cards, explainability outputs, scenario presets, surge simulation trigger,
+  policy editor with validation and apply, side-by-side policy benchmarking, and SQLite audit timeline viewer.
 
 Run steps:
 1. Start compliance-risk service:

@@ -1,7 +1,8 @@
 import json
+import sqlite3
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -9,6 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Compliance Risk Agent", version="1.0.0")
+
+DB_PATH = Path(__file__).resolve().parents[2] / "data" / "crisisprocure.db"
+POLICY_PATH = Path(__file__).with_name("policy_pack.json")
 
 DEFAULT_POLICY = {
     "policy_version": "fallback-core-v1",
@@ -29,10 +33,9 @@ DEFAULT_POLICY = {
 
 
 def _load_policy() -> Dict:
-    policy_path = Path(__file__).with_name("policy_pack.json")
-    if not policy_path.exists():
+    if not POLICY_PATH.exists():
         return DEFAULT_POLICY
-    with policy_path.open("r", encoding="utf-8") as f:
+    with POLICY_PATH.open("r", encoding="utf-8") as f:
         policy = json.load(f)
     return policy
 
@@ -81,6 +84,66 @@ app.add_middleware(
 )
 
 
+def _init_db() -> None:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS risk_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                correlation_id TEXT NOT NULL,
+                order_id TEXT NOT NULL,
+                decision TEXT NOT NULL,
+                risk_score REAL NOT NULL,
+                confidence REAL NOT NULL,
+                policy_version TEXT NOT NULL,
+                triggered_rules TEXT NOT NULL,
+                reasons TEXT NOT NULL
+            )
+            """
+        )
+        conn.commit()
+
+
+def _persist_run(
+    *,
+    created_at: str,
+    correlation_id: str,
+    order_id: str,
+    decision: str,
+    risk_score: float,
+    confidence: float,
+    policy_version: str,
+    triggered_rules: List[str],
+    reasons: List[str],
+) -> None:
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT INTO risk_runs (
+                created_at, correlation_id, order_id, decision, risk_score,
+                confidence, policy_version, triggered_rules, reasons
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                correlation_id,
+                order_id,
+                decision,
+                risk_score,
+                confidence,
+                policy_version,
+                json.dumps(triggered_rules),
+                json.dumps(reasons),
+            ),
+        )
+        conn.commit()
+
+
+_init_db()
+
+
 class LineItem(BaseModel):
     sku: str
     quantity: int = Field(gt=0)
@@ -111,6 +174,10 @@ class ExceptionResponse(BaseModel):
     reasons: List[str]
 
 
+class PolicyPayload(BaseModel):
+    policy: Dict[str, Any]
+
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -126,6 +193,36 @@ def get_policy() -> dict:
     return POLICY
 
 
+@app.post("/policy/validate")
+def validate_policy(payload: PolicyPayload) -> dict:
+    valid, errors = _validate_policy(payload.policy)
+    return {
+        "valid": valid,
+        "errors": errors,
+        "policy_version": payload.policy.get("policy_version", "unknown"),
+    }
+
+
+@app.post("/policy/apply")
+def apply_policy(payload: PolicyPayload) -> dict:
+    global POLICY, POLICY_VALID, POLICY_ERRORS
+
+    valid, errors = _validate_policy(payload.policy)
+    if not valid:
+        return {"applied": False, "valid": False, "errors": errors}
+
+    with POLICY_PATH.open("w", encoding="utf-8") as f:
+        json.dump(payload.policy, f, indent=2)
+
+    POLICY = payload.policy
+    POLICY_VALID, POLICY_ERRORS = valid, []
+    return {
+        "applied": True,
+        "valid": True,
+        "policy_version": POLICY.get("policy_version", "unknown"),
+    }
+
+
 @app.get("/metrics")
 def get_metrics() -> dict:
     return {
@@ -133,6 +230,40 @@ def get_metrics() -> dict:
         "policy_version": POLICY.get("policy_version", "unknown"),
         "metrics": METRICS,
     }
+
+
+@app.get("/history")
+def get_history(limit: int = 30) -> dict:
+    bounded_limit = min(max(limit, 1), 200)
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute(
+            """
+            SELECT created_at, correlation_id, order_id, decision, risk_score,
+                   confidence, policy_version, triggered_rules, reasons
+            FROM risk_runs
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (bounded_limit,),
+        )
+        rows = cursor.fetchall()
+
+    timeline = [
+        {
+            "created_at": row[0],
+            "correlation_id": row[1],
+            "order_id": row[2],
+            "decision": row[3],
+            "risk_score": row[4],
+            "confidence": row[5],
+            "policy_version": row[6],
+            "triggered_rules": json.loads(row[7]),
+            "reasons": json.loads(row[8]),
+        }
+        for row in rows
+    ]
+
+    return {"service": "compliance-risk-agent", "timeline": timeline}
 
 
 @app.post("/evaluate", response_model=ExceptionResponse)
@@ -193,6 +324,18 @@ def evaluate(req: ExceptionRequest) -> ExceptionResponse:
 
     METRICS["evaluations_total"] += 1
     METRICS[decision] += 1
+
+    _persist_run(
+        created_at=evaluated_at,
+        correlation_id=correlation_id,
+        order_id=req.order_id,
+        decision=decision,
+        risk_score=round(score, 2),
+        confidence=round(confidence, 2),
+        policy_version=POLICY.get("policy_version", "unknown"),
+        triggered_rules=triggered_rules,
+        reasons=reasons,
+    )
 
     return ExceptionResponse(
         correlation_id=correlation_id,

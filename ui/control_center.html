@@ -80,6 +80,44 @@
         </form>
         <pre id="priorityOutput" class="output">Awaiting prioritization...</pre>
       </section>
+
+      <section class="card">
+        <h2>Policy Editor (Safe Apply)</h2>
+        <div class="row">
+          <label>Target Service
+            <select id="policyTarget">
+              <option value="risk">Compliance-Risk Agent</option>
+              <option value="priority">Prioritization Agent</option>
+            </select>
+          </label>
+          <div class="inline-actions">
+            <button id="loadPolicyBtn" class="btn btn-secondary" type="button">Load Policy</button>
+            <button id="validatePolicyBtn" class="btn btn-secondary" type="button">Validate Policy</button>
+            <button id="applyPolicyBtn" class="btn" type="button">Apply Policy</button>
+          </div>
+        </div>
+        <textarea id="policyEditor" class="policy-editor" spellcheck="false"></textarea>
+        <pre id="policyOutput" class="output">Load a policy to edit...</pre>
+      </section>
+
+      <section class="card">
+        <h2>Policy Comparison (Side-by-Side)</h2>
+        <p class="helper">Compare two policy packs on the same requisition set.</p>
+        <div class="row">
+          <label>Policy A JSON<textarea id="policyAEditor" class="policy-editor compact" spellcheck="false"></textarea></label>
+          <label>Policy B JSON<textarea id="policyBEditor" class="policy-editor compact" spellcheck="false"></textarea></label>
+        </div>
+        <button id="comparePoliciesBtn" class="btn" type="button">Run Comparison</button>
+        <pre id="compareOutput" class="output">Awaiting comparison...</pre>
+      </section>
+
+      <section class="card kpi-card">
+        <h2>Audit Timeline (SQLite History)</h2>
+        <div class="inline-actions">
+          <button id="refreshHistoryBtn" class="btn btn-secondary" type="button">Refresh Timeline</button>
+        </div>
+        <pre id="historyOutput" class="output">Awaiting history...</pre>
+      </section>
     </main>
 
     <footer>
