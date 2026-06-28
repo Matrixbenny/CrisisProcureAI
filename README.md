@@ -52,6 +52,20 @@ External AI agents can be used behind API endpoints, while UiPath remains the or
 - Explainability: responses include triggered rules, policy versions, and recommended next step.
 - Deterministic routing: risk and priority decisions map to explicit workflow lanes.
 - Human governance: high-risk cases remain routed to mandatory human approvals.
+- Correlation IDs: request traces can be followed end-to-end across services.
+- Metrics endpoints: live counters support observability and dashboard KPIs.
+- Surge simulation: prioritization service can generate crisis traffic scenarios.
+
+## User-friendly control center UI
+- Location: ui/control_center.html
+- Features: live KPI cards, explainability outputs, scenario presets, surge simulation trigger.
+
+Run steps:
+1. Start compliance-risk service:
+   - uvicorn services.exception_agent.app:app --host 0.0.0.0 --port 8010
+2. Start prioritization service:
+   - uvicorn services.collections_agent.app:app --host 0.0.0.0 --port 8020
+3. Open ui/control_center.html in your browser.
 
 ## Quality checks
 - Run syntax check:

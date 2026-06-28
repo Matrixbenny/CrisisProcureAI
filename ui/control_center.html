@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CrisisProcure AI Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./control_center.css" />
+  </head>
+  <body>
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Global Agentic Operations</p>
+        <h1>CrisisProcure AI Control Center</h1>
+        <p class="subtitle">Policy-aware emergency procurement with explainable AI, human governance, and live prioritization.</p>
+      </div>
+      <button id="refreshMetrics" class="btn btn-secondary">Refresh Metrics</button>
+    </header>
+
+    <main class="grid">
+      <section class="card kpi-card">
+        <h2>Live KPIs</h2>
+        <div id="kpiGrid" class="kpi-grid">
+          <article><h3>Risk Evaluations</h3><p id="kpiEvaluations">-</p></article>
+          <article><h3>Human Reviews</h3><p id="kpiHuman">-</p></article>
+          <article><h3>Prioritizations</h3><p id="kpiPrioritizations">-</p></article>
+          <article><h3>Items Processed</h3><p id="kpiItems">-</p></article>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Compliance-Risk Evaluation</h2>
+        <form id="riskForm" class="stack">
+          <div class="row">
+            <label>Request ID<input name="order_id" value="REQ-4101" required /></label>
+            <label>Profile Tier<input name="customer_tier" value="new" required /></label>
+          </div>
+          <div class="row">
+            <label>Category
+              <select name="category">
+                <option value="medical">medical</option>
+                <option value="utilities">utilities</option>
+                <option value="safety">safety</option>
+                <option value="food">food</option>
+                <option value="general">general</option>
+              </select>
+            </label>
+            <label>Discount %<input type="number" name="discount_percent" value="25" min="0" max="100" /></label>
+          </div>
+          <button class="btn" type="submit">Evaluate Request</button>
+        </form>
+        <pre id="riskOutput" class="output">Awaiting evaluation...</pre>
+      </section>
+
+      <section class="card">
+        <h2>Prioritization</h2>
+        <div class="pill-row">
+          <button class="pill" data-scenario="surge">Simulate Surge</button>
+          <button class="pill" data-scenario="balanced">Balanced Queue</button>
+          <button class="pill" data-scenario="compliance">Compliance Block</button>
+        </div>
+        <form id="priorityForm" class="stack">
+          <div class="row">
+            <label>Requisition ID<input name="requisition_id" value="REQ-5001" required /></label>
+            <label>Department<input name="requester_department" value="Emergency" required /></label>
+          </div>
+          <div class="row">
+            <label>Amount<input type="number" name="amount" value="33000" min="1" /></label>
+            <label>Hours to stockout<input type="number" name="hours_to_stockout" value="6" min="0" /></label>
+          </div>
+          <div class="row">
+            <label>Vulnerability Index<input type="number" name="vulnerability_index" value="0.8" step="0.1" min="0" max="1" /></label>
+            <label class="checkbox"><input type="checkbox" name="compliance_blocked" /> Compliance Blocked</label>
+          </div>
+          <button class="btn" type="submit">Prioritize Queue</button>
+        </form>
+        <pre id="priorityOutput" class="output">Awaiting prioritization...</pre>
+      </section>
+    </main>
+
+    <footer>
+      <p>Tip: Run both APIs locally on ports 8010 and 8020. Open this file in browser for interactive testing.</p>
+    </footer>
+
+    <script src="./control_center.js"></script>
+  </body>
+</html>

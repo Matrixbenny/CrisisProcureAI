@@ -19,6 +19,8 @@ def test_exception_agent_high_risk_path() -> None:
     response = client.post("/evaluate", json=payload)
     assert response.status_code == 200
     body = response.json()
+    assert body["correlation_id"].startswith("corr-")
+    assert body["evaluated_at"]
     assert body["decision"] == "human_review"
     assert body["requires_human_approval"] is True
     assert body["policy_version"]
@@ -32,6 +34,15 @@ def test_exception_agent_policy_endpoint() -> None:
     body = response.json()
     assert "policy_version" in body
     assert "thresholds" in body
+
+
+def test_exception_agent_metrics_endpoint() -> None:
+    client = TestClient(exception_app)
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    body = response.json()
+    assert "metrics" in body
+    assert "evaluations_total" in body["metrics"]
 
 
 def test_prioritization_agent_high_priority() -> None:
@@ -52,6 +63,8 @@ def test_prioritization_agent_high_priority() -> None:
     response = client.post("/prioritize", json=payload)
     assert response.status_code == 200
     body = response.json()
+    assert body["correlation_id"].startswith("corr-")
+    assert body["prioritized_at"]
     item = body["action_items"][0]
     assert item["priority"] == "high"
     assert item["priority_score"] >= 0.75
@@ -65,3 +78,18 @@ def test_prioritization_policy_endpoint() -> None:
     body = response.json()
     assert "policy_version" in body
     assert "weights" in body
+
+
+def test_prioritization_metrics_and_surge() -> None:
+    client = TestClient(prioritization_app)
+    surge_response = client.post("/simulate/surge")
+    assert surge_response.status_code == 200
+    surge_body = surge_response.json()
+    assert surge_body["simulation_mode"] is True
+    assert len(surge_body["action_items"]) == 3
+
+    metrics_response = client.get("/metrics")
+    assert metrics_response.status_code == 200
+    metrics_body = metrics_response.json()
+    assert "metrics" in metrics_body
+    assert "items_processed" in metrics_body["metrics"]

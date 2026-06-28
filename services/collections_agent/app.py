@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
-from typing import Dict, List
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+from uuid import uuid4
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Prioritization Agent", version="1.0.0")
@@ -35,7 +38,49 @@ def _load_policy() -> Dict:
     return policy
 
 
+def _validate_policy(policy: Dict) -> tuple[bool, List[str]]:
+    errors: List[str] = []
+    required_sections = ["policy_version", "thresholds", "weights"]
+    for section in required_sections:
+        if section not in policy:
+            errors.append(f"Missing section: {section}")
+
+    thresholds = policy.get("thresholds", {})
+    weights = policy.get("weights", {})
+
+    for key in ["critical_hours", "near_term_hours", "high_amount", "high_priority", "medium_priority"]:
+        if key not in thresholds:
+            errors.append(f"Missing threshold: {key}")
+
+    for key in ["stockout_critical", "stockout_near_term", "compliance_blocked", "high_amount", "vulnerability_boost"]:
+        if key not in weights:
+            errors.append(f"Missing weight: {key}")
+
+    if "medium_priority" in thresholds and "high_priority" in thresholds:
+        if thresholds["medium_priority"] > thresholds["high_priority"]:
+            errors.append("medium_priority must be <= high_priority")
+
+    return len(errors) == 0, errors
+
+
 POLICY = _load_policy()
+POLICY_VALID, POLICY_ERRORS = _validate_policy(POLICY)
+
+METRICS = {
+    "prioritizations_total": 0,
+    "items_processed": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+}
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class Requisition(BaseModel):
@@ -48,6 +93,7 @@ class Requisition(BaseModel):
 
 
 class CollectionsRequest(BaseModel):
+    correlation_id: Optional[str] = None
     requisitions: List[Requisition]
 
 
@@ -62,12 +108,20 @@ class ActionItem(BaseModel):
 
 
 class CollectionsResponse(BaseModel):
+    correlation_id: str
+    prioritized_at: str
+    simulation_mode: bool = False
     action_items: List[ActionItem]
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "prioritization-agent"}
+    return {
+        "status": "ok",
+        "service": "prioritization-agent",
+        "policy_valid": POLICY_VALID,
+        "policy_errors": POLICY_ERRORS,
+    }
 
 
 @app.get("/policy")
@@ -75,8 +129,19 @@ def get_policy() -> dict:
     return POLICY
 
 
+@app.get("/metrics")
+def get_metrics() -> dict:
+    return {
+        "service": "prioritization-agent",
+        "policy_version": POLICY.get("policy_version", "unknown"),
+        "metrics": METRICS,
+    }
+
+
 @app.post("/prioritize", response_model=CollectionsResponse)
 def prioritize(req: CollectionsRequest) -> CollectionsResponse:
+    correlation_id = req.correlation_id or f"corr-{uuid4()}"
+    prioritized_at = datetime.now(timezone.utc).isoformat()
     thresholds = POLICY["thresholds"]
     weights = POLICY["weights"]
     actions: List[ActionItem] = []
@@ -131,5 +196,49 @@ def prioritize(req: CollectionsRequest) -> CollectionsResponse:
             )
         )
 
+        METRICS[priority] += 1
+
+    METRICS["prioritizations_total"] += 1
+    METRICS["items_processed"] += len(req.requisitions)
     actions.sort(key=lambda a: {"high": 0, "medium": 1, "low": 2}[a.priority])
-    return CollectionsResponse(action_items=actions)
+    return CollectionsResponse(
+        correlation_id=correlation_id,
+        prioritized_at=prioritized_at,
+        action_items=actions,
+    )
+
+
+@app.post("/simulate/surge", response_model=CollectionsResponse)
+def simulate_surge() -> CollectionsResponse:
+    simulated = CollectionsRequest(
+        correlation_id=f"sim-{uuid4()}",
+        requisitions=[
+            Requisition(
+                requisition_id="SIM-1001",
+                requester_department="Emergency",
+                amount=12000,
+                hours_to_stockout=5,
+                vulnerability_index=0.7,
+                compliance_blocked=False,
+            ),
+            Requisition(
+                requisition_id="SIM-1002",
+                requester_department="ICU",
+                amount=42000,
+                hours_to_stockout=10,
+                vulnerability_index=0.9,
+                compliance_blocked=False,
+            ),
+            Requisition(
+                requisition_id="SIM-1003",
+                requester_department="Surgery",
+                amount=8000,
+                hours_to_stockout=20,
+                vulnerability_index=0.4,
+                compliance_blocked=True,
+            ),
+        ],
+    )
+    result = prioritize(simulated)
+    result.simulation_mode = True
+    return result

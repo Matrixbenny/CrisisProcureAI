@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
-from typing import Dict, List
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+from uuid import uuid4
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Compliance Risk Agent", version="1.0.0")
@@ -34,7 +37,48 @@ def _load_policy() -> Dict:
     return policy
 
 
+def _validate_policy(policy: Dict) -> tuple[bool, List[str]]:
+    errors: List[str] = []
+    required_sections = ["policy_version", "thresholds", "weights", "critical_categories"]
+    for section in required_sections:
+        if section not in policy:
+            errors.append(f"Missing section: {section}")
+
+    thresholds = policy.get("thresholds", {})
+    weights = policy.get("weights", {})
+
+    for key in ["discount_soft_limit", "price_variance_limit", "supervisor_review", "human_review"]:
+        if key not in thresholds:
+            errors.append(f"Missing threshold: {key}")
+
+    for key in ["discount_violation", "new_profile", "price_variance", "critical_category_boost"]:
+        if key not in weights:
+            errors.append(f"Missing weight: {key}")
+
+    if "supervisor_review" in thresholds and "human_review" in thresholds:
+        if thresholds["supervisor_review"] > thresholds["human_review"]:
+            errors.append("supervisor_review must be <= human_review")
+
+    return len(errors) == 0, errors
+
+
 POLICY = _load_policy()
+POLICY_VALID, POLICY_ERRORS = _validate_policy(POLICY)
+
+METRICS = {
+    "evaluations_total": 0,
+    "auto_approve": 0,
+    "supervisor_review": 0,
+    "human_review": 0,
+}
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class LineItem(BaseModel):
@@ -49,10 +93,13 @@ class ExceptionRequest(BaseModel):
     customer_tier: str
     discount_percent: float = Field(ge=0, le=100)
     category: str = "general"
+    correlation_id: Optional[str] = None
     line_items: List[LineItem]
 
 
 class ExceptionResponse(BaseModel):
+    correlation_id: str
+    evaluated_at: str
     order_id: str
     risk_score: float
     confidence: float
@@ -66,7 +113,12 @@ class ExceptionResponse(BaseModel):
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "compliance-risk-agent"}
+    return {
+        "status": "ok",
+        "service": "compliance-risk-agent",
+        "policy_valid": POLICY_VALID,
+        "policy_errors": POLICY_ERRORS,
+    }
 
 
 @app.get("/policy")
@@ -74,8 +126,19 @@ def get_policy() -> dict:
     return POLICY
 
 
+@app.get("/metrics")
+def get_metrics() -> dict:
+    return {
+        "service": "compliance-risk-agent",
+        "policy_version": POLICY.get("policy_version", "unknown"),
+        "metrics": METRICS,
+    }
+
+
 @app.post("/evaluate", response_model=ExceptionResponse)
 def evaluate(req: ExceptionRequest) -> ExceptionResponse:
+    correlation_id = req.correlation_id or f"corr-{uuid4()}"
+    evaluated_at = datetime.now(timezone.utc).isoformat()
     reasons: List[str] = []
     triggered_rules: List[str] = []
     score = 0.0
@@ -128,7 +191,12 @@ def evaluate(req: ExceptionRequest) -> ExceptionResponse:
         confidence = min(0.88, 0.52 + (0.05 * len(triggered_rules)))
         recommended_next_step = "Proceed with automated procurement path."
 
+    METRICS["evaluations_total"] += 1
+    METRICS[decision] += 1
+
     return ExceptionResponse(
+        correlation_id=correlation_id,
+        evaluated_at=evaluated_at,
         order_id=req.order_id,
         risk_score=round(score, 2),
         confidence=round(confidence, 2),
