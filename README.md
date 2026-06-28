@@ -133,9 +133,17 @@ Both agents support this lifecycle with auditable snapshots.
    - python -m compileall services
 - Run tests:
    - pytest -q
+- Run submission preflight:
+   - python scripts/submission_preflight.py
 
 ## Long-term roadmap
 - See docs/WORLDCLASS_ROADMAP.md for present-to-future evolution plan.
+
+## Final submission aids
+- Track 2 readiness report: docs/TRACK2_FINAL_READINESS.md
+- Maestro evidence capture guide: docs/MAESTRO_EVIDENCE_CAPTURE.md
+- Coding agents bonus proof guide: docs/CODING_AGENTS_BONUS_PROOF.md
+- Final submission sequence: docs/FINAL_SUBMISSION_PLAYBOOK.md
 
 Note: UiPath orchestration execution must run in UiPath Automation Cloud for hackathon compliance.
 

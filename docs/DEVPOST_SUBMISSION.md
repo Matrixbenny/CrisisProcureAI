@@ -23,6 +23,9 @@ We built an end-to-end BPMN workflow on UiPath Automation Cloud that orchestrate
 - Maestro BPMN coordinates sourcing, approval, PO creation, and confirmation
 - Prioritization Agent ranks pending requisitions and proposes escalation paths
 
+Track 2 alignment statement:
+- This solution uses a predictable BPMN 2.0 process in UiPath Maestro with explicit gateways, task ownership, and orchestrated handoffs between humans, agent APIs, and automation tasks.
+
 ## Architecture highlights
 - UiPath Maestro BPMN is the orchestration control plane
 - Coded agents exposed as API services
@@ -40,6 +43,9 @@ We used coding agents through UiPath for Coding Agents to accelerate:
 - API service scaffolding
 - Rule and risk-logic iteration
 - Documentation and test-flow design
+- Policy safety features (validate/apply/rollback)
+- Fairness diagnostics and side-by-side policy benchmarking
+- Hybrid portal and control center implementation
 
 ## Business impact
 - Faster emergency procurement cycle time and fewer manual touches
