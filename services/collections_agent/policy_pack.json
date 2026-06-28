@@ -1,0 +1,17 @@
+{
+  "policy_version": "global-priority-v1",
+  "weights": {
+    "stockout_critical": 0.55,
+    "stockout_near_term": 0.35,
+    "compliance_blocked": 0.6,
+    "high_amount": 0.15,
+    "vulnerability_boost": 0.2
+  },
+  "thresholds": {
+    "critical_hours": 6,
+    "near_term_hours": 24,
+    "high_amount": 25000,
+    "high_priority": 0.75,
+    "medium_priority": 0.45
+  }
+}

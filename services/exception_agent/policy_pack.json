@@ -1,0 +1,21 @@
+{
+  "policy_version": "global-core-v1",
+  "thresholds": {
+    "discount_soft_limit": 20.0,
+    "price_variance_limit": 0.15,
+    "supervisor_review": 0.3,
+    "human_review": 0.6
+  },
+  "weights": {
+    "discount_violation": 0.35,
+    "new_profile": 0.2,
+    "price_variance": 0.2,
+    "critical_category_boost": 0.15
+  },
+  "critical_categories": [
+    "medical",
+    "utilities",
+    "safety",
+    "food"
+  ]
+}

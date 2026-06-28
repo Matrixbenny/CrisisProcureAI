@@ -6,9 +6,9 @@ Track: UiPath Maestro BPMN (Track 2)
 CrisisProcure AI automates emergency procure-to-order flow with a human-in-the-loop model:
 - RPA and API ingestion capture urgent requisitions from email/forms/ERP triggers.
 - An AI normalization agent converts free-form requests into structured procurement intents.
-- A compliance-risk agent scores policy, budget, and urgency risk, then routes edge cases for human approval.
+- A compliance-risk agent scores policy, budget, and urgency risk with explainable rule traces.
 - Maestro BPMN orchestrates sourcing, approval, PO creation, and supplier confirmation.
-- A prioritization agent ranks pending requisitions and recommends next actions during surges.
+- A prioritization agent ranks pending requisitions using transparent policy-based scoring.
 
 The result is faster time-to-PO, fewer manual handoffs, and stronger compliance under pressure.
 
@@ -33,8 +33,8 @@ External AI agents can be used behind API endpoints, while UiPath remains the or
 ## Repository structure
 - docs/: Submission, architecture, demo, judging map, and execution plan
 - bpmn/: BPMN process definition starter
-- services/exception_agent/: Example AI compliance-risk triage service
-- services/collections_agent/: Example AI requisition prioritization service
+- services/exception_agent/: Policy-driven compliance-risk service with explainability output
+- services/collections_agent/: Policy-driven requisition prioritization service
 - uipath/: Place exported UiPath assets or package references
 - assets/: Screenshots, diagrams, and demo media references
 
@@ -46,6 +46,21 @@ External AI agents can be used behind API endpoints, while UiPath remains the or
    - uvicorn services.exception_agent.app:app --host 0.0.0.0 --port 8010
 4. Run collections agent:
    - uvicorn services.collections_agent.app:app --host 0.0.0.0 --port 8020
+
+## API features that improve trust and resilience
+- Policy packs: both agents load configurable policy files from their service directories.
+- Explainability: responses include triggered rules, policy versions, and recommended next step.
+- Deterministic routing: risk and priority decisions map to explicit workflow lanes.
+- Human governance: high-risk cases remain routed to mandatory human approvals.
+
+## Quality checks
+- Run syntax check:
+   - python -m compileall services
+- Run tests:
+   - pytest -q
+
+## Long-term roadmap
+- See docs/WORLDCLASS_ROADMAP.md for present-to-future evolution plan.
 
 Note: UiPath orchestration execution must run in UiPath Automation Cloud for hackathon compliance.
 
