@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CrisisProcure AI | Hybrid Operations Website</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/ui/site.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container row">
+        <h1>CrisisProcure AI</h1>
+        <a class="btn" href="/ui/control_center.html">Open Control Center</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero container">
+        <p class="eyebrow">Hybrid Website + Agentic Backend</p>
+        <h2>Emergency procurement at mission speed, with human trust built in.</h2>
+        <p>
+          CrisisProcure AI combines a user-friendly web experience with resilient FastAPI agent services.
+          Teams can triage urgent requests, apply safe policy changes, track fairness, and maintain a full audit timeline.
+        </p>
+        <div class="hero-actions">
+          <a class="btn" href="/ui/control_center.html">Launch Operations Console</a>
+          <a class="btn ghost" href="https://github.com/Matrixbenny/CrisisProcureAI" target="_blank" rel="noreferrer">View Source</a>
+        </div>
+      </section>
+
+      <section class="container grid">
+        <article class="card">
+          <h3>Decision Intelligence</h3>
+          <p>Risk scoring with explainable reasons, confidence, and policy-linked governance.</p>
+        </article>
+        <article class="card">
+          <h3>Fairness Diagnostics</h3>
+          <p>Every prioritization batch includes disparity checks across departments.</p>
+        </article>
+        <article class="card">
+          <h3>Policy Safety</h3>
+          <p>Validate, apply, compare, and rollback policy packs with auditable history.</p>
+        </article>
+      </section>
+
+      <section class="container card status">
+        <h3>Live Service Status</h3>
+        <div class="status-grid">
+          <div><strong>Web Portal:</strong> <span id="portalStatus">checking...</span></div>
+          <div><strong>Risk Agent:</strong> <span id="riskStatus">checking...</span></div>
+          <div><strong>Prioritization Agent:</strong> <span id="priorityStatus">checking...</span></div>
+        </div>
+      </section>
+
+      <section class="container card">
+        <h3>How users interact</h3>
+        <ol>
+          <li>Open this website and enter operations console.</li>
+          <li>Evaluate incoming requests and review explainable decisions.</li>
+          <li>Prioritize queues, inspect fairness, and adjust policies safely.</li>
+          <li>Review timeline and metrics to improve outcomes continuously.</li>
+        </ol>
+      </section>
+    </main>
+
+    <script>
+      async function setStatus(id, url) {
+        try {
+          const res = await fetch(url);
+          const body = await res.json();
+          document.getElementById(id).textContent = body.status === 'ok' ? 'online' : 'degraded';
+        } catch {
+          document.getElementById(id).textContent = 'offline';
+        }
+      }
+
+      setStatus('portalStatus', '/health');
+      setStatus('riskStatus', 'http://127.0.0.1:8010/health');
+      setStatus('priorityStatus', 'http://127.0.0.1:8020/health');
+    </script>
+  </body>
+</html>

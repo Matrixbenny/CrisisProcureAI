@@ -79,8 +79,13 @@ Run steps:
    - .\scripts\run_services.ps1
 
 This starts both:
+- Web portal on 8088
 - Compliance-Risk Agent on 8010
 - Prioritization Agent on 8020
+
+Open the hybrid website:
+- Home page: http://127.0.0.1:8088
+- Operations console: http://127.0.0.1:8088/ui/control_center.html
 
 ## Quality analysis workflow
 Generate a quick quality report from persisted SQLite history:

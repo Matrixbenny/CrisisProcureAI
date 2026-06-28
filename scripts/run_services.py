@@ -7,6 +7,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 SERVICES = [
     {
+        "name": "web-portal",
+        "cmd": [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "web_gateway.app:app",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8088",
+        ],
+    },
+    {
         "name": "compliance-risk-agent",
         "cmd": [
             sys.executable,
@@ -43,7 +56,12 @@ def main() -> int:
             proc = subprocess.Popen(svc["cmd"], cwd=ROOT)
             procs.append(proc)
 
-        print("Both services are running. Press Ctrl+C to stop all.")
+        print("Hybrid stack is running:")
+        print("- Web portal: http://127.0.0.1:8088")
+        print("- Control Center: http://127.0.0.1:8088/ui/control_center.html")
+        print("- Risk API: http://127.0.0.1:8010")
+        print("- Prioritization API: http://127.0.0.1:8020")
+        print("Press Ctrl+C to stop all.")
         while True:
             for proc in procs:
                 code = proc.poll()
