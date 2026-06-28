@@ -1,0 +1,31 @@
+{
+  "exception_agent": {
+    "happy_path": {
+      "order_id": "REQ-1001",
+      "customer_tier": "approved",
+      "discount_percent": 4,
+      "line_items": [
+        {"sku": "N95-BOX", "quantity": 120, "unit_price": 18, "expected_price": 18},
+        {"sku": "GLOVES-XL", "quantity": 200, "unit_price": 7, "expected_price": 7}
+      ]
+    },
+    "exception_path": {
+      "order_id": "REQ-1002",
+      "customer_tier": "new",
+      "discount_percent": 30,
+      "line_items": [
+        {"sku": "VENT-KIT", "quantity": 4, "unit_price": 2900, "expected_price": 2100},
+        {"sku": "O2-MODULE", "quantity": 6, "unit_price": 980, "expected_price": 760}
+      ]
+    }
+  },
+  "collections_agent": {
+    "mixed_requisitions": {
+      "requisitions": [
+        {"requisition_id": "REQ-2001", "requester_department": "ER", "amount": 12000, "hours_to_stockout": 5, "compliance_blocked": false},
+        {"requisition_id": "REQ-2002", "requester_department": "ICU", "amount": 35000, "hours_to_stockout": 20, "compliance_blocked": false},
+        {"requisition_id": "REQ-2003", "requester_department": "Surgery", "amount": 8400, "hours_to_stockout": 12, "compliance_blocked": true}
+      ]
+    }
+  }
+}
